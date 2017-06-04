@@ -76,3 +76,10 @@ app.post('/api/triggerBuild', hmac, (req, res) => {
     });
     res.status(200).send();
 });
+
+app.post('/api/triggerBuildReverseproxy', hmac, (req, res) => {
+    exec(process.env.PROXY_HOME + "scripts/build", (error, stdout, stderr) => {
+        console.log(stdout + error + stderr);
+    });
+    res.status(200).send();
+});
