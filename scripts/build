@@ -1,0 +1,7 @@
+#!/bin/bash
+cd /home/www
+
+git fetch
+git pull
+
+systemctl restart wwwd
