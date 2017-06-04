@@ -1,5 +1,5 @@
 'use strict';
-let version = '3',
+let version = '8',
     jwt,
     offline = new Response(new Blob(), {status: 279}),
     staticContent = [
@@ -28,10 +28,10 @@ let version = '3',
     onlineFirst = [
         'api/getNewChapterList',
         'api/requestFullChapterList',
-        'api/subscribeSeries'
+        'api/subscribeSeries',
+        'api/requestChapter'
     ],
     offlineFirst = [
-        'api/requestChapter'
     ],
     requestStack = [],
     stackTimer,
@@ -43,9 +43,9 @@ const relativeUrl   = 'index.html',
       serverUrl     = 'https://fochlac.com/dev/',
       apiUrl     = 'https://crawler.fochlac.com/',
       iconUrl       = '/images/bookcase_144.png',
-      offlineRegex  = new RegExp(offlineFirst.map(str => str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|')),
-      onlineRegex   = new RegExp(onlineFirst.map(str => str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|')),
-      staticRegex   = new RegExp(staticContent.map(str => str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|'));
+      offlineRegex  = offlineFirst.length ?  new RegExp(offlineFirst.map(str => str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|')) : undefined,
+      onlineRegex   = onlineFirst.length ? new RegExp(onlineFirst.map(str => str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|')) : undefined,
+      staticRegex   = staticContent.length ?  new RegExp(staticContent.map(str => str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|')) : undefined;
 
 function handle_push(event) {
     if (pushTimeout) {
@@ -78,21 +78,23 @@ function handle_push(event) {
             url,
             reqArr = [],
             newReq;
-        caches.open(version)
-        .then(function(cache) {
-            chapterArray.forEach(story => {
-                story.chapters.forEach((chapter) => {
-                    url = apiUrl + 'api/requestChapter?short=' + story.short + '&chapter=' + chapter + '&addToNew=false';
-                    newReq = new Request(url, {headers: new Headers({jwt: jwt})});
-                    reqArr.push(newReq);
-                });
+
+        chapterArray.forEach(story => {
+            story.chapters.forEach((chapter) => {
+                let chapterText;
+
+                url = apiUrl + 'api/requestChapter?short=' + story.short + '&chapter=' + chapter + '&addToNew=false';
+                newReq = new Request(url, {headers: new Headers({jwt: jwt})});
+                fetch(newReq)
+                    .then(req => req.text())
+                    .then(text => {
+                        chapterText = text;
+                        return initDb(story.short, 'Chapters')
+                    })
+                    .then(db => db.set(chapter, chapterText))
+                    .catch(console.error);
             });
-
-            Promise.all(reqArr.map(req => cache.delete(req)))
-                .then(() => cache.addAll(reqArr))
-                .catch(err => console.warn(err));
-
-        }).catch(err => console.warn(err));
+        });
     }
 }
 
@@ -120,7 +122,7 @@ function handle_click(event) {
                 }
             }
         )
-        .then(() => initDb('ServiceWorker', 'MessageCache', version))
+        .then(() => initDb('ServiceWorker', 'MessageCache'))
         .then(db => db.delete('Cache'))
         .catch(err => console.warn(err))
     );
@@ -131,7 +133,7 @@ function handle_message(event) {
 
     switch(message.type) {
         case 'resetBase':
-            initDb('ServiceWorker', 'MessageCache', version).then(db => db.delete('Cache'));
+            initDb('ServiceWorker', 'MessageCache').then(db => db.delete('Cache'));
             break;
         case 'newJWT':
             jwt = message.jwt;
@@ -143,12 +145,15 @@ function handle_message(event) {
         case 'clearCache':
             clearCache();
             break;
+        default:
+            console.log('Error: Unknown Message:' + event.data);
+            break;
     }
 }
 
 function handle_fetch(event) {
     if (event.request.method === 'GET') {
-        if (onlineRegex.test(event.request.url)) {
+        if (onlineRegex && onlineRegex.test(event.request.url)) {
             let req = event.request.clone();
             event.respondWith(
                 fetch(event.request)
@@ -173,7 +178,7 @@ function handle_fetch(event) {
                     }).catch(err => console.warn(err));
                 })
             );
-        } else if (offlineRegex.test(event.request.url)) {
+        } else if (offlineRegex && offlineRegex.test(event.request.url)) {
             event.respondWith(
                 caches.open(version)
                 .then(cache => {
@@ -196,7 +201,7 @@ function handle_fetch(event) {
                     }).catch(err => console.warn(err));
                 }).catch(err => console.warn(err))
             );
-        } else if (staticRegex.test(event.request.url)) {
+        } else if (staticRegex && staticRegex.test(event.request.url)) {
             event.respondWith(
                 caches.open(version)
                 .then(cache => {
@@ -231,7 +236,7 @@ function saveMessages(data) {
 
         dbObj;
 
-    return initDb('ServiceWorker', 'MessageCache', version)
+    return initDb('ServiceWorker', 'MessageCache')
         .then(db => {
             dbObj = db;
 
@@ -342,7 +347,7 @@ function triggerRefresh(client) {
 }
 
 function initDb(DBName, storageName, version) {
-    let request = indexedDB.open(DBName, version),
+    let request = version ? indexedDB.open(DBName, version) : indexedDB.open(DBName),
         db;
 
     return new Promise((resolve, reject) => {
@@ -372,10 +377,20 @@ function initDb(DBName, storageName, version) {
 
             db.get = (id) => {
                 return new Promise( (resolve, reject) => {
-                    var store = db.transaction([storageName], 'readwrite').objectStore(storageName),
+                    var store = db.transaction([storageName], 'readonly').objectStore(storageName),
                         request = store.get(id);
 
                     request.onsuccess = evt => resolve(evt.target.result ? evt.target.result.data : {});
+                    request.onerror = evt => reject(evt);
+                });
+            };
+
+            db.getIndex = () => {
+                return new Promise( (resolve, reject) => {
+                    var store = db.transaction([storageName], 'readonly').objectStore(storageName),
+                        request = store.getAllKeys();
+
+                    request.onsuccess = evt => resolve(evt.target.result ? evt.target.result : []);
                     request.onerror = evt => reject(evt);
                 });
             };
@@ -390,10 +405,15 @@ function initDb(DBName, storageName, version) {
                 });
             };
 
-            resolve(db);
+            if (db.objectStoreNames.contains(storageName)) {
+                resolve(db);
+            } else {
+                resolve(initDb(DBName, storageName, db.version + 1));
+            }
+
         };
     });
-}
+};
 
 self.addEventListener('notificationclick', handle_click);
 self.addEventListener('message', handle_message);

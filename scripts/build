@@ -1,7 +1,7 @@
 #!/bin/bash
 cd /home/www
 
-git fetch
-git pull
+git fetch origin
+git reset --hard origin/master
 
 systemctl restart wwwd
