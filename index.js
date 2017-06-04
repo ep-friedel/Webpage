@@ -4,6 +4,7 @@ const   express = require('express')
     ,   app = express()
     ,   bodyparser = require('body-parser')
     ,   compression = require('compression')
+    ,   exec = require('child_process').execFile
     ,   hmac = require(process.env.WWW_HOME + 'hmac')(process.env.GITHUB_SECRET, 'X-Hub-Signature')
     ,   server = require('http').createServer(app)
     ,   server_port = process.env.WWW_PORT
