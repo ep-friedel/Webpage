@@ -4,6 +4,7 @@ const   express = require('express')
     ,   app = express()
     ,   bodyparser = require('body-parser')
     ,   compression = require('compression')
+    ,   exec = require('child_process').execFile
     ,   hmac = require(process.env.WWW_HOME + 'hmac')(process.env.GITHUB_SECRET, 'X-Hub-Signature')
     ,   server = require('http').createServer(app)
     ,   server_port = process.env.WWW_PORT
@@ -72,6 +73,13 @@ app.get('/api/proxy/:proxy', (req, res) => {
 
 app.post('/api/triggerBuild', hmac, (req, res) => {
     exec(process.env.WWW_HOME + "scripts/build", (error, stdout, stderr) => {
+        console.log(stdout + error + stderr);
+    });
+    res.status(200).send();
+});
+
+app.post('/api/triggerBuildReverseproxy', hmac, (req, res) => {
+    exec(process.env.PROXY_HOME + "scripts/build", (error, stdout, stderr) => {
         console.log(stdout + error + stderr);
     });
     res.status(200).send();
