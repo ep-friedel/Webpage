@@ -1807,8 +1807,10 @@ front.serverActions.requestChapter = (item, addToNew) => {
     }
 
     return new Promise((resolve, reject) => {
-        front.dbs[item.short].get(item.Chapter)
+        front.dbs[item.short]
+        .then(db => db.get(item.Chapter))
         .then((dbItem) => {
+            console.log(dbItem);
             if (localStorage[item.short+item.Chapter] !== undefined && localStorage[item.short+item.Chapter].length >= 1000) {
                 if (addToNew) {
                     front.serverActions.markNew(item)
