@@ -1853,7 +1853,8 @@ front.serverActions.requestChapter = (item, addToNew) => {
                 };
                 http.send();
             }
-        });
+        })
+        .catch(console.log);
     });
 };
 
