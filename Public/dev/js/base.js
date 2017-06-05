@@ -1926,7 +1926,7 @@ front.tools.initDb = (DBName, storageName, version) => {
                     var store = db.transaction([storageName], 'readwrite').objectStore(storageName),
                         request = store.get(id);
 
-                    request.onsuccess = evt => resolve(evt.target.result ? evt.target.result.data : {});
+                    request.onsuccess = evt => resolve(evt.target.result ? evt.target.result.data : 'undefined');
                     request.onerror = evt => reject(evt);
                 });
             };
@@ -1944,7 +1944,8 @@ front.tools.initDb = (DBName, storageName, version) => {
             if (db.objectStoreNames.contains(storageName)) {
                 resolve(db);
             } else {
-                resolve(front.tools.initDb(DBName, storageName, db.version + 1));
+                front.tools.initDb(DBName, storageName, db.version + 1)
+                    .then(resolve);
             }
 
         };
