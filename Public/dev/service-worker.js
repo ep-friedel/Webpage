@@ -377,10 +377,20 @@ function initDb(DBName, storageName, version) {
 
             db.get = (id) => {
                 return new Promise( (resolve, reject) => {
-                    var store = db.transaction([storageName], 'readwrite').objectStore(storageName),
+                    var store = db.transaction([storageName], 'readonly').objectStore(storageName),
                         request = store.get(id);
 
                     request.onsuccess = evt => resolve(evt.target.result ? evt.target.result.data : {});
+                    request.onerror = evt => reject(evt);
+                });
+            };
+
+            db.getIndex = () => {
+                return new Promise( (resolve, reject) => {
+                    var store = db.transaction([storageName], 'readonly').objectStore(storageName),
+                        request = store.getAllKeys();
+
+                    request.onsuccess = evt => resolve(evt.target.result ? evt.target.result : []);
                     request.onerror = evt => reject(evt);
                 });
             };

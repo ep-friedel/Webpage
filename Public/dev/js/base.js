@@ -912,12 +912,12 @@ front.methods.newChapterList = () => {
             .forEach(front.methods.initChapterContainer);
         front.vars.newChapterList = front.methods.sortChapters(front.vars.newChapterList);
 
-        loadingObject = front.methods.sortChaptersForLoading(front.vars.newChapterList);
-
-        loadingObject.firstChapters.forEach(item => front.vars.loadingState[item.short] = {state: 0});
-
-        front.methods.getChapter(loadingObject.storedChapters)
-        .then(() => {
+        front.methods.sortChaptersForLoading(front.vars.newChapterList)
+        .then((result) => {
+            loadingObject = result;
+            loadingObject.firstChapters.forEach(item => front.vars.loadingState[item.short] = {state: 0});
+            return front.methods.getChapter(loadingObject.storedChapters);
+        }).then(() => {
             loadingObject.firstChapters.forEach((item, index) => {
                 if (!index) {
                     cse[item.short].icon.className = 'loadingIcon fa fa-cog fa-spin';
@@ -980,11 +980,12 @@ front.methods.refreshedChapterList = () => {
 
             filteredList = front.methods.sortChapters(filteredList);
 
-            loadingObject = front.methods.sortChaptersForLoading(filteredList);
-
-            loadingObject.firstChapters.forEach(item => front.vars.loadingState[item.short] = {state: 0});
-
-            front.methods.getChapter(loadingObject.storedChapters)
+            front.methods.sortChaptersForLoading(front.vars.newChapterList)
+            .then((result) => {
+                loadingObject = result;
+                loadingObject.firstChapters.forEach(item => front.vars.loadingState[item.short] = {state: 0});
+                return front.methods.getChapter(loadingObject.storedChapters);
+            })
             .then(() => {
                 loadingObject.firstChapters.forEach((item, index) => {
                     if (!index) {
@@ -1129,31 +1130,55 @@ front.methods.sortChapters = (arr) => {
 
 front.methods.sortChaptersForLoading = (arr) => {
     let sortedarr = front.methods.sortChapters(arr),
-        storedChaptersList = Object.keys(localStorage),
-        firstChapters = {};
+        firstChapters = {},
+        stories = sortedarr.reduce((acc, chap) => {
+            if (!stories.includes(chap.short)) {
+                acc.push(chap.short);
+            }
+            return acc;
+        }, []),
+        storedChaptersList;
 
-    return sortedarr.reduce((acc, chap) => {
-        if (storedChaptersList.includes(chap.short + chap.Chapter)) {
-            if (firstChapters[chap.short] === undefined) {
-                firstChapters[chap.short] = true;
-                acc.firstChapters.push(chap);
-                acc.storedChapters.push(chap);
-            } else {
-                acc.storedChapters.push(chap);
+    return Promise.all(stories.map(story => {
+            if (!front.dbs[item.short]) {
+                front.dbs[item.short] = front.tools.initDb(item.short, 'Chapters')
             }
 
-        } else if (firstChapters[chap.short] === undefined) {
-            firstChapters[chap.short] = true;
-            acc.firstChapters.push(chap);
-        } else {
-            acc.otherChapters.push(chap);
-        }
-        return acc;
-    }, {
-        firstChapters: [],
-        storedChapters: [],
-        otherChapters: []
+            return front.dbs[item.short].getIndex()
+    })).then(result => {
+        return result.reduce((acc, chapters, index) => {
+            acc[stories[index]] = chapters;
+            return acc;
+        }, {});
+    }).catch((err) => {
+        console.log(err);
+        return {};
+    }).then(storedChapters => {
+        return sortedarr.reduce((acc, chap) => {
+            if (storedChapters[chap.short] && storedChapters[chap.short].includes(chap.Chapter)) {
+                if (firstChapters[chap.short] === undefined) {
+                    firstChapters[chap.short] = true;
+                    acc.firstChapters.push(chap);
+                    acc.storedChapters.push(chap);
+                } else {
+                    acc.storedChapters.push(chap);
+                }
+
+            } else if (firstChapters[chap.short] === undefined) {
+                firstChapters[chap.short] = true;
+                acc.firstChapters.push(chap);
+            } else {
+                acc.otherChapters.push(chap);
+            }
+            return acc;
+        }, {
+            firstChapters: [],
+            storedChapters: [],
+            otherChapters: []
+        });
+
     });
+
 };
 
 front.methods.unmarkRead = (item) => {
@@ -1924,10 +1949,20 @@ front.tools.initDb = (DBName, storageName, version) => {
 
             db.get = (id) => {
                 return new Promise( (resolve, reject) => {
-                    var store = db.transaction([storageName], 'readwrite').objectStore(storageName),
+                    var store = db.transaction([storageName], 'readonly').objectStore(storageName),
                         request = store.get(id);
 
                     request.onsuccess = evt => resolve(evt.target.result ? evt.target.result.data : 'undefined');
+                    request.onerror = evt => reject(evt);
+                });
+            };
+
+            db.getIndex = () => {
+                return new Promise( (resolve, reject) => {
+                    var store = db.transaction([storageName], 'readonly').objectStore(storageName),
+                        request = store.getAllKeys();
+
+                    request.onsuccess = evt => resolve(evt.target.result ? evt.target.result : []);
                     request.onerror = evt => reject(evt);
                 });
             };
