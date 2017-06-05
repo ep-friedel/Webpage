@@ -6,6 +6,8 @@ front = {
     serverActions: {}
 ,   methods: {
     }
+,   tools: {
+    }
 ,   handler: {
         reader: {}
     ,   content: {}
@@ -41,6 +43,7 @@ front = {
     ,   loadingState: {}
     ,   notificationSettings: {}
     ,   reference: {}
+    ,   refreshedChapterList: []
     ,   startTrans: 0
     ,   startX: 0
     ,   startY: 0
@@ -315,7 +318,7 @@ front.handler.menu.toggleMinimizedSound = (event) => {
             .catch(() => {
                 front.handler.menu.toggleMinimized(eventClone);
                 busy.remove();
-            })
+            });
     }
 
     front.handler.menu.toggleMinimized(eventClone);
@@ -414,7 +417,16 @@ front.handler.login = (event) => {
 };
 
 front.handler.message = (event) => {
-    front.methods.getChapterList();
+    let message = event.data;
+
+    switch(message.type) {
+        case 'versionNumber':
+            front.vars.version = event.data.number;
+            break;
+        case 'newChapter':
+            front.methods.getChapterList();
+            break;
+    }
 };
 
 front.handler.reload = (event) => {
@@ -784,6 +796,7 @@ front.methods.login = (user, password, errorMessageInput) => {
             if (navigator.serviceWorker.controller) {
                 clearInterval(front.vars.reloadTimer);
                 navigator.serviceWorker.controller.postMessage({type: 'newJWT', jwt: data.token});
+                navigator.serviceWorker.controller.postMessage({type: 'getVersion'});
             }
         })
         .then(() => {
@@ -853,6 +866,8 @@ front.methods.logout = () => {
 };
 
 front.methods.markRead = (item) => {
+    front.vars.refreshedChapterList = front.vars.refreshedChapterList.filter(refitem => (refitem.short !== item.short && refitem.Chapter !== item.Chapter));
+
     item.read = true;
     front.serverActions.markRead(item)
         .catch(()=>{
@@ -1723,7 +1738,7 @@ front.serverActions.getNewToken = () => {
                 switch(http.status) {
                     case 200:
                     case 279:
-                        let res = JSON.parse(http.response)
+                        let res = JSON.parse(http.response);
                         front.vars.user = JSON.parse(atob(res.token.split('.')[1]));
                         front.vars.jwt =  res.token;
                         localStorage.jwt = res.token;
@@ -1784,6 +1799,10 @@ front.serverActions.requestChapter = (item, addToNew) => {
             url = front.options.server + '/api/requestChapter' + '?short=' + item.short + '&chapter=' + item.Chapter + '&addToNew=' + (addToNew ? addToNew : false);
     let chapterDbController;
 
+    if (!front.dbs[item.short]) {
+        front.dbs[item.short] = initDb('Chapters', story.short, front.vars.version)
+    }
+
     return new Promise((resolve, reject) => {
         if (localStorage[item.short+item.Chapter] !== undefined && localStorage[item.short+item.Chapter].length >= 1000) {
             if (addToNew) {
@@ -1799,36 +1818,30 @@ front.serverActions.requestChapter = (item, addToNew) => {
             http.addEventListener("progress", (event) => {
             });
             http.onreadystatechange = (event, res) => {
-                switch(http.readyState){
-                    case 2:
-                        break;
+                if (http.readyState === 4 && http.status === 200) {
 
-                    case 4:
-                        if (http.status === 200) {
+                    if (localStorage.timestamps) {
+                        chapterDbController = JSON.parse(localStorage.timestamps);
+                        chapterDbController.push({
+                            timestamp: new Date().getTime(),
+                            key: item.short+item.Chapter
+                        });
+                        localStorage.timestamps = JSON.stringify(chapterDbController);
+                    } else {
+                        localStorage.timestamps = JSON.stringify([{timestamp: new Date().getTime(), key: item.short+item.Chapter}]);
+                    }
+                    try {
+                        localStorage[item.short+item.Chapter] = http.responseText;
+                    }
+                    catch (e) {
+                    }
 
-                            if (localStorage.timestamps) {
-                                chapterDbController = JSON.parse(localStorage.timestamps);
-                                chapterDbController.push({
-                                    timestamp: new Date().getTime(),
-                                    key: item.short+item.Chapter
-                                });
-                                localStorage.timestamps = JSON.stringify(chapterDbController);
-                            } else {
-                                localStorage.timestamps = JSON.stringify([{timestamp: new Date().getTime(), key: item.short+item.Chapter}]);
-                            }
-                            try {
-                                localStorage[item.short+item.Chapter] = http.responseText;
-                            }
-                            catch (e) {
-                            }
-
-                            resolve(http.responseText);
-                        } else {
-                            if (http.status === 401) {
-                                front.methods.logout();
-                            }
-                            reject();
-                        }
+                    resolve(http.responseText);
+                } else {
+                    if (http.status === 401) {
+                        front.methods.logout();
+                    }
+                    reject();
                 }
             };
             http.send();
@@ -1851,6 +1864,62 @@ front.serverActions.subscribe = (short, unsubscribe) => {
             front.methods.defaultRequestHandling(http, resolve, reject);
         };
         http.send(datastring);
+    });
+};
+
+
+
+front.tools.initDb = (DBName, storageName, version) => {
+    let request = indexedDB.open(DBName, version),
+        db;
+
+    return new Promise((resolve, reject) => {
+        request.onupgradeneeded = function() {
+            var db = this.result;
+            if (!db.objectStoreNames.contains(storageName)) {
+                db.createObjectStore(storageName, {
+                    keyPath: 'key'
+                });
+            }
+        };
+
+        request.onerror = reject;
+
+        request.onsuccess = function() {
+            db = this.result;
+
+            db.delete = (id) => {
+                return new Promise( (resolve, reject) => {
+                    var store = db.transaction([storageName], 'readwrite').objectStore(storageName),
+                        request = store.delete(id);
+
+                    request.onsuccess = evt => resolve(evt);
+                    request.onerror = evt => reject(evt);
+                });
+            };
+
+            db.get = (id) => {
+                return new Promise( (resolve, reject) => {
+                    var store = db.transaction([storageName], 'readwrite').objectStore(storageName),
+                        request = store.get(id);
+
+                    request.onsuccess = evt => resolve(evt.target.result ? evt.target.result.data : {});
+                    request.onerror = evt => reject(evt);
+                });
+            };
+
+            db.set = function(id, data) {
+                return new Promise( (resolve, reject) => {
+                    var store = db.transaction([storageName], 'readwrite').objectStore(storageName),
+                        request = store.put({key: id, data: data});
+
+                    request.onsuccess = evt => resolve(evt);
+                    request.onerror = evt => reject(evt);
+                });
+            };
+
+            resolve(db);
+        };
     });
 };
 
@@ -1926,7 +1995,7 @@ front.initLoadingCircle = (arr) => {
                 loadingCircleContent.remove();
             }
         }).catch(err => console.log(err));
-}
+};
 
 front.registerListeners = () => {
     const h = front.handler,

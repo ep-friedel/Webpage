@@ -1,5 +1,5 @@
 'use strict';
-let version = '4',
+let version = '5',
     jwt,
     offline = new Response(new Blob(), {status: 279}),
     staticContent = [
@@ -144,6 +144,9 @@ function handle_message(event) {
             break;
         case 'clearCache':
             clearCache();
+            break;
+        case 'getVersion':
+            console.log(event);
             break;
     }
 }
