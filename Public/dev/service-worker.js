@@ -148,6 +148,9 @@ function handle_message(event) {
         case 'getVersion':
             event.ports[0].postMessage('versionNumber', version);
             break;
+        default:
+            console.log('Error: Unknown Message:' + event.data);
+            break;
     }
 }
 
