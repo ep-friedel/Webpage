@@ -1862,7 +1862,7 @@ front.serverActions.requestChapter = (item, addToNew) => {
                     }
 
                     resolve(http.responseText);
-                } else {
+                } else if (http.readyState === 4) {
                     if (http.status === 401) {
                         front.methods.logout();
                     }
