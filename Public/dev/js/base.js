@@ -794,8 +794,8 @@ front.methods.sendMessageToSw = (message) => {
 
 front.methods.getVersion = () => {
     front.methods.sendMessageToSw({type: 'getVersion'})
-    .then((version) => {
-        front.vars.version = version;
+    .then((data) => {
+        front.vars.version = data.version;
     })
     .catch(err => {
         console.log(err);

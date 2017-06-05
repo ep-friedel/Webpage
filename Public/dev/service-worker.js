@@ -146,7 +146,7 @@ function handle_message(event) {
             clearCache();
             break;
         case 'getVersion':
-            event.ports[0].postMessage('versionNumber', version);
+            event.ports[0].postMessage({type: 'versionNumber', version: version});
             break;
         default:
             console.log('Error: Unknown Message:' + event.data);
