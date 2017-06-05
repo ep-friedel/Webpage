@@ -421,7 +421,6 @@ front.handler.message = (event) => {
 
     switch(message.type) {
         case 'versionNumber':
-            front.vars.version = event.data.number;
             break;
         case 'newChapter':
             front.methods.getChapterList();
@@ -778,6 +777,20 @@ front.methods.loadChapterList = (story, start, end) => {
     front.methods.getChapter(arr2, true);
 };
 
+front.methods.sendMessageToSw = (message) => {
+  return new Promise((resolve, reject) => {
+    let messageChannel = new MessageChannel();
+    messageChannel.port1.onmessage = (event) => {
+        if (event.data.error) {
+            reject(event.data.error);
+        } else {
+            resolve(event.data);
+        }
+    };
+    navigator.serviceWorker.controller.postMessage(message, [messageChannel.port2]);
+  });
+}
+
 front.methods.login = (user, password, errorMessageInput) => {
     let errorMessage = errorMessageInput || 'Login-Error, Error Code: ';
 
@@ -796,7 +809,14 @@ front.methods.login = (user, password, errorMessageInput) => {
             if (navigator.serviceWorker.controller) {
                 clearInterval(front.vars.reloadTimer);
                 navigator.serviceWorker.controller.postMessage({type: 'newJWT', jwt: data.token});
-                navigator.serviceWorker.controller.postMessage({type: 'getVersion'});
+                front.methods.sendMessageToSw('getVersion')
+                    .then((version) => {
+                        front.vars.version = version;
+                    })
+                    .catch(err => {
+                        console.log(err);
+                        front.vars.version = front.vars.version ? front.vars.version : 0;
+                    });
             }
         })
         .then(() => {

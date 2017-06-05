@@ -146,7 +146,7 @@ function handle_message(event) {
             clearCache();
             break;
         case 'getVersion':
-            console.log(event);
+            event.ports[0].postMessage('versionNumber', version);
             break;
     }
 }
