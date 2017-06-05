@@ -89,7 +89,7 @@ function handle_push(event) {
                     .then(req => req.text())
                     .then(text => {
                         chapterText = text;
-                        return initDb('Chapters', story.short, version)
+                        return initDb('Chapters', story.short)
                     })
                     .then(db => db.set(chapter, chapterText))
                     .catch(console.error);
@@ -122,7 +122,7 @@ function handle_click(event) {
                 }
             }
         )
-        .then(() => initDb('ServiceWorker', 'MessageCache', version))
+        .then(() => initDb('ServiceWorker', 'MessageCache'))
         .then(db => db.delete('Cache'))
         .catch(err => console.warn(err))
     );
@@ -133,7 +133,7 @@ function handle_message(event) {
 
     switch(message.type) {
         case 'resetBase':
-            initDb('ServiceWorker', 'MessageCache', version).then(db => db.delete('Cache'));
+            initDb('ServiceWorker', 'MessageCache').then(db => db.delete('Cache'));
             break;
         case 'newJWT':
             jwt = message.jwt;
@@ -144,9 +144,6 @@ function handle_message(event) {
             break;
         case 'clearCache':
             clearCache();
-            break;
-        case 'getVersion':
-            event.ports[0].postMessage({type: 'versionNumber', version: version});
             break;
         default:
             console.log('Error: Unknown Message:' + event.data);
@@ -239,7 +236,7 @@ function saveMessages(data) {
 
         dbObj;
 
-    return initDb('ServiceWorker', 'MessageCache', version)
+    return initDb('ServiceWorker', 'MessageCache')
         .then(db => {
             dbObj = db;
 
@@ -350,7 +347,7 @@ function triggerRefresh(client) {
 }
 
 function initDb(DBName, storageName, version) {
-    let request = indexedDB.open(DBName, version),
+    let request = version ? indexedDB.open(DBName, version) : indexedDB.open(DBName),
         db;
 
     return new Promise((resolve, reject) => {
@@ -398,10 +395,15 @@ function initDb(DBName, storageName, version) {
                 });
             };
 
-            resolve(db);
+            if (db.objectStoreNames.contains(storageName)) {
+                resolve(db);
+            } else {
+                resolve(initDb(DBName, storageName, db.version + 1));
+            }
+
         };
     });
-}
+};
 
 self.addEventListener('notificationclick', handle_click);
 self.addEventListener('message', handle_message);

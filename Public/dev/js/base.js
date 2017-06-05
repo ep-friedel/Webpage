@@ -508,7 +508,6 @@ front.methods.checkForToken = () => {
         front.vars.jwt = jwt;
         navigator.serviceWorker.ready.then((registration) => {
             registration.active.postMessage({type: 'newJWT', jwt: jwt});
-            front.methods.getVersion();
         })
         .catch(err => console.warn('checkForToken error', err));
         front.initAfterLogin();
@@ -722,17 +721,6 @@ front.methods.getCurrentVisibleChapter = () => {
     return currentElem;
 };
 
-front.methods.getVersion = () => {
-    front.methods.sendMessageToSw({type: 'getVersion'})
-    .then((data) => {
-        front.vars.version = parseInt(data.version);
-    })
-    .catch(err => {
-        console.log(err);
-        front.vars.version = front.vars.version ? front.vars.version : 0;
-    });
-};
-
 front.methods.hideItem = (item) => {
     if (item !== undefined && item.read && !item.hidden) {
         let cse = front.vars.createdStoryElem[item.short];
@@ -806,7 +794,6 @@ front.methods.login = (user, password, errorMessageInput) => {
             if (navigator.serviceWorker.controller) {
                 clearInterval(front.vars.reloadTimer);
                 navigator.serviceWorker.controller.postMessage({type: 'newJWT', jwt: data.token});
-                front.methods.getVersion();
             }
         })
         .then(() => {
@@ -1628,6 +1615,59 @@ front.serverActions.getFullChapterList = () => {
     });
 };
 
+front.serverActions.getNewToken = () => {
+    const   http = new XMLHttpRequest(),
+            url = front.options.server + '/refreshToken';
+
+    return new Promise((resolve, reject) => {
+        http.open('GET', url, true);
+        http.setRequestHeader("jwt", front.vars.jwt);
+        http.onreadystatechange = () => {
+            if (http.readyState === 4) {
+                switch(http.status) {
+                    case 200:
+                    case 279:
+                        let res = JSON.parse(http.response);
+                        front.vars.user = JSON.parse(atob(res.token.split('.')[1]));
+                        front.vars.jwt =  res.token;
+                        localStorage.jwt = res.token;
+
+                        navigator.serviceWorker.ready.then((registration) => {
+                            if (navigator.serviceWorker.controller) {
+                                clearInterval(front.vars.reloadTimer);
+                                navigator.serviceWorker.controller.postMessage({type: 'newJWT', jwt: res.token});
+                            }
+                        });
+                        resolve();
+                        break;
+                    case 401:
+                        front.methods.logout();
+                        reject();
+                        break;
+                    default:
+                        reject();
+                        break;
+                }
+            }
+        };
+        http.send();
+    });
+};
+
+front.serverActions.getNotificationSettings = () => {
+    const   http = new XMLHttpRequest(),
+            url = front.options.server + '/api/notificationSettings';
+
+    return new Promise((resolve, reject) => {
+        http.open('GET', url, true);
+        http.setRequestHeader("jwt", front.vars.jwt);
+        http.onreadystatechange = () => {
+            front.methods.defaultRequestHandling(http, resolve, reject);
+        };
+        http.send();
+    });
+};
+
 front.serverActions.getStatus = () => {
     const http = new XMLHttpRequest(),
         url = front.options.server + '/api/status';
@@ -1757,42 +1797,61 @@ front.serverActions.messagingKey = (subscription, deleteKey) => {
     });
 };
 
-front.serverActions.getNewToken = () => {
+front.serverActions.requestChapter = (item, addToNew) => {
     const   http = new XMLHttpRequest(),
-            url = front.options.server + '/refreshToken';
+            url = front.options.server + '/api/requestChapter' + '?short=' + item.short + '&chapter=' + item.Chapter + '&addToNew=' + (addToNew ? addToNew : false);
+    let chapterDbController;
+
+    if (!front.dbs[item.short]) {
+        front.dbs[item.short] = front.tools.initDb('Chapters', item.short)
+    }
 
     return new Promise((resolve, reject) => {
-        http.open('GET', url, true);
-        http.setRequestHeader("jwt", front.vars.jwt);
-        http.onreadystatechange = () => {
-            if (http.readyState === 4) {
-                switch(http.status) {
-                    case 200:
-                    case 279:
-                        let res = JSON.parse(http.response);
-                        front.vars.user = JSON.parse(atob(res.token.split('.')[1]));
-                        front.vars.jwt =  res.token;
-                        localStorage.jwt = res.token;
-
-                        navigator.serviceWorker.ready.then((registration) => {
-                            if (navigator.serviceWorker.controller) {
-                                clearInterval(front.vars.reloadTimer);
-                                navigator.serviceWorker.controller.postMessage({type: 'newJWT', jwt: res.token});
-                            }
-                        });
-                        resolve();
-                        break;
-                    case 401:
-                        front.methods.logout();
-                        reject();
-                        break;
-                    default:
-                        reject();
-                        break;
+        front.dbs[item.short].get(item.Chapter)
+        .then((dbItem) => {
+            if (localStorage[item.short+item.Chapter] !== undefined && localStorage[item.short+item.Chapter].length >= 1000) {
+                if (addToNew) {
+                    front.serverActions.markNew(item)
+                        .catch(err => console.log(err));
                 }
+
+                resolve(localStorage[item.short+item.Chapter]);
+            } else {
+                http.open('GET', url, true);
+                http.setRequestHeader("jwt", front.vars.jwt);
+                http.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                http.addEventListener("progress", (event) => {
+                });
+                http.onreadystatechange = (event, res) => {
+                    if (http.readyState === 4 && http.status === 200) {
+
+                        if (localStorage.timestamps) {
+                            chapterDbController = JSON.parse(localStorage.timestamps);
+                            chapterDbController.push({
+                                timestamp: new Date().getTime(),
+                                key: item.short+item.Chapter
+                            });
+                            localStorage.timestamps = JSON.stringify(chapterDbController);
+                        } else {
+                            localStorage.timestamps = JSON.stringify([{timestamp: new Date().getTime(), key: item.short+item.Chapter}]);
+                        }
+                        try {
+                            localStorage[item.short+item.Chapter] = http.responseText;
+                        }
+                        catch (e) {
+                        }
+
+                        resolve(http.responseText);
+                    } else if (http.readyState === 4) {
+                        if (http.status === 401) {
+                            front.methods.logout();
+                        }
+                        reject();
+                    }
+                };
+                http.send();
             }
-        };
-        http.send();
+        });
     });
 };
 
@@ -1808,76 +1867,6 @@ front.serverActions.setNotificationSettings = () => {
             front.methods.defaultRequestHandling(http, resolve, reject);
         };
         http.send('silent=' + front.vars.notificationSettings.silent + '&vibrate=' + front.vars.notificationSettings.vibrate);
-    });
-};
-
-front.serverActions.getNotificationSettings = () => {
-    const   http = new XMLHttpRequest(),
-            url = front.options.server + '/api/notificationSettings';
-
-    return new Promise((resolve, reject) => {
-        http.open('GET', url, true);
-        http.setRequestHeader("jwt", front.vars.jwt);
-        http.onreadystatechange = () => {
-            front.methods.defaultRequestHandling(http, resolve, reject);
-        };
-        http.send();
-    });
-};
-
-front.serverActions.requestChapter = (item, addToNew) => {
-    const   http = new XMLHttpRequest(),
-            url = front.options.server + '/api/requestChapter' + '?short=' + item.short + '&chapter=' + item.Chapter + '&addToNew=' + (addToNew ? addToNew : false);
-    let chapterDbController;
-
-    if (!front.dbs[item.short]) {
-        front.dbs[item.short] = front.tools.initDb('Chapters', item.short, front.vars.version)
-    }
-
-    return new Promise((resolve, reject) => {
-        if (localStorage[item.short+item.Chapter] !== undefined && localStorage[item.short+item.Chapter].length >= 1000) {
-            if (addToNew) {
-                front.serverActions.markNew(item)
-                    .catch(err => console.log(err));
-            }
-
-            resolve(localStorage[item.short+item.Chapter]);
-        } else {
-            http.open('GET', url, true);
-            http.setRequestHeader("jwt", front.vars.jwt);
-            http.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-            http.addEventListener("progress", (event) => {
-            });
-            http.onreadystatechange = (event, res) => {
-                if (http.readyState === 4 && http.status === 200) {
-
-                    if (localStorage.timestamps) {
-                        chapterDbController = JSON.parse(localStorage.timestamps);
-                        chapterDbController.push({
-                            timestamp: new Date().getTime(),
-                            key: item.short+item.Chapter
-                        });
-                        localStorage.timestamps = JSON.stringify(chapterDbController);
-                    } else {
-                        localStorage.timestamps = JSON.stringify([{timestamp: new Date().getTime(), key: item.short+item.Chapter}]);
-                    }
-                    try {
-                        localStorage[item.short+item.Chapter] = http.responseText;
-                    }
-                    catch (e) {
-                    }
-
-                    resolve(http.responseText);
-                } else if (http.readyState === 4) {
-                    if (http.status === 401) {
-                        front.methods.logout();
-                    }
-                    reject();
-                }
-            };
-            http.send();
-        }
-
     });
 };
 
@@ -1901,7 +1890,7 @@ front.serverActions.subscribe = (short, unsubscribe) => {
 
 
 front.tools.initDb = (DBName, storageName, version) => {
-    let request = indexedDB.open(DBName, version),
+    let request = version ? indexedDB.open(DBName, version) : indexedDB.open(DBName),
         db;
 
     return new Promise((resolve, reject) => {
@@ -1949,7 +1938,12 @@ front.tools.initDb = (DBName, storageName, version) => {
                 });
             };
 
-            resolve(db);
+            if (db.objectStoreNames.contains(storageName)) {
+                resolve(db);
+            } else {
+                resolve(front.tools.initDb(DBName, storageName, db.version + 1));
+            }
+
         };
     });
 };
