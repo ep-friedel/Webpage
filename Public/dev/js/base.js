@@ -507,8 +507,7 @@ front.methods.checkForToken = () => {
         front.el.body.classList.add('menuMode');
         front.vars.jwt = jwt;
         navigator.serviceWorker.ready.then((registration) => {
-            if (navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({type: 'newJWT', jwt: jwt});
+                registration.active.postMessage({type: 'newJWT', jwt: jwt});
                 front.methods.getVersion();
             }
         }).catch(err => console.warn('checkForToken error', err));
@@ -723,6 +722,17 @@ front.methods.getCurrentVisibleChapter = () => {
     return currentElem;
 };
 
+front.methods.getVersion = () => {
+    front.methods.sendMessageToSw({type: 'getVersion'})
+    .then((data) => {
+        front.vars.version = parseInt(data.version);
+    })
+    .catch(err => {
+        console.log(err);
+        front.vars.version = front.vars.version ? front.vars.version : 0;
+    });
+};
+
 front.methods.hideItem = (item) => {
     if (item !== undefined && item.read && !item.hidden) {
         let cse = front.vars.createdStoryElem[item.short];
@@ -776,31 +786,6 @@ front.methods.loadChapterList = (story, start, end) => {
         arr2.push({'short': story, 'Chapter': arr1[i], 'read': false});
     }
     front.methods.getChapter(arr2, true);
-};
-
-front.methods.sendMessageToSw = (message) => {
-  return new Promise((resolve, reject) => {
-    let messageChannel = new MessageChannel();
-    messageChannel.port1.onmessage = (event) => {
-        if (event.data.error) {
-            reject(event.data.error);
-        } else {
-            resolve(event.data);
-        }
-    };
-    navigator.serviceWorker.controller.postMessage(message, [messageChannel.port2]);
-  });
-};
-
-front.methods.getVersion = () => {
-    front.methods.sendMessageToSw({type: 'getVersion'})
-    .then((data) => {
-        front.vars.version = data.version;
-    })
-    .catch(err => {
-        console.log(err);
-        front.vars.version = front.vars.version ? front.vars.version : 0;
-    });
 };
 
 front.methods.login = (user, password, errorMessageInput) => {
@@ -1114,6 +1099,27 @@ front.methods.resetStorage = () => {
 
     localStorage.clear();
     localStorage.jwt = jwt;
+};
+
+front.methods.sendMessageToSw = (message) => {
+  return new Promise((resolve, reject) => {
+    let messageChannel = new MessageChannel();
+    messageChannel.port1.onmessage = (event) => {
+        if (event.data.error) {
+            reject(event.data.error);
+        } else {
+            resolve(event.data);
+        }
+    };
+
+    if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage(message, [messageChannel.port2]);
+    } else {
+        navigator.serviceWorker.ready.then((registration) => {
+            registration.active.postMessage(message, [messageChannel.port2]);
+        });
+    }
+  });
 };
 
 front.methods.sortChapters = (arr) => {
