@@ -1946,7 +1946,7 @@ front.tools.initDb = (DBName, storageName, version) => {
             } else {
                 db.close();
                 front.tools.initDb(DBName, storageName, db.version + 1)
-                    .then(resolve).
+                    .then(resolve)
                     .catch(console.log);
             }
 
