@@ -509,6 +509,7 @@ front.methods.checkForToken = () => {
         navigator.serviceWorker.ready.then((registration) => {
             if (navigator.serviceWorker.controller) {
                 navigator.serviceWorker.controller.postMessage({type: 'newJWT', jwt: jwt});
+                front.methods.getVersion();
             }
         }).catch(err => console.warn('checkForToken error', err));
         front.initAfterLogin();
@@ -790,7 +791,18 @@ front.methods.sendMessageToSw = (message) => {
     };
     navigator.serviceWorker.controller.postMessage(message, [messageChannel.port2]);
   });
-}
+};
+
+front.methods.getVersion = () => {
+    front.methods.sendMessageToSw('getVersion')
+    .then((version) => {
+        front.vars.version = version;
+    })
+    .catch(err => {
+        console.log(err);
+        front.vars.version = front.vars.version ? front.vars.version : 0;
+    });
+};
 
 front.methods.login = (user, password, errorMessageInput) => {
     let errorMessage = errorMessageInput || 'Login-Error, Error Code: ';
@@ -810,14 +822,7 @@ front.methods.login = (user, password, errorMessageInput) => {
             if (navigator.serviceWorker.controller) {
                 clearInterval(front.vars.reloadTimer);
                 navigator.serviceWorker.controller.postMessage({type: 'newJWT', jwt: data.token});
-                front.methods.sendMessageToSw('getVersion')
-                    .then((version) => {
-                        front.vars.version = version;
-                    })
-                    .catch(err => {
-                        console.log(err);
-                        front.vars.version = front.vars.version ? front.vars.version : 0;
-                    });
+                front.methods.getVersion();
             }
         })
         .then(() => {
