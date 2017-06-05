@@ -1,5 +1,5 @@
 'use strict';
-let version = '5',
+let version = '6',
     jwt,
     offline = new Response(new Blob(), {status: 279}),
     staticContent = [
@@ -89,7 +89,7 @@ function handle_push(event) {
                     .then(req => req.text())
                     .then(text => {
                         chapterText = text;
-                        return initDb('Chapters', story.short)
+                        return initDb(story.short, 'Chapters')
                     })
                     .then(db => db.set(chapter, chapterText))
                     .catch(console.error);

@@ -1800,24 +1800,22 @@ front.serverActions.messagingKey = (subscription, deleteKey) => {
 front.serverActions.requestChapter = (item, addToNew) => {
     const   http = new XMLHttpRequest(),
             url = front.options.server + '/api/requestChapter' + '?short=' + item.short + '&chapter=' + item.Chapter + '&addToNew=' + (addToNew ? addToNew : false);
-    let chapterDbController;
 
     if (!front.dbs[item.short]) {
-        front.dbs[item.short] = front.tools.initDb('Chapters', item.short)
+        front.dbs[item.short] = front.tools.initDb(item.short, 'Chapters')
     }
 
     return new Promise((resolve, reject) => {
         front.dbs[item.short]
         .then(db => db.get(item.Chapter))
         .then((dbItem) => {
-            console.log(dbItem);
-            if (localStorage[item.short+item.Chapter] !== undefined && localStorage[item.short+item.Chapter].length >= 1000) {
+            if (dbItem !== undefined && dbItem.length >= 1000) {
                 if (addToNew) {
                     front.serverActions.markNew(item)
                         .catch(err => console.log(err));
                 }
 
-                resolve(localStorage[item.short+item.Chapter]);
+                resolve(dbItem);
             } else {
                 http.open('GET', url, true);
                 http.setRequestHeader("jwt", front.vars.jwt);
@@ -1826,24 +1824,13 @@ front.serverActions.requestChapter = (item, addToNew) => {
                 });
                 http.onreadystatechange = (event, res) => {
                     if (http.readyState === 4 && http.status === 200) {
+                        front.dbs[item.short]
+                        .then(db => db.set(item.Chapter, http.responseText))
+                        .catch(console.log)
+                        .then(() => {
+                            resolve(http.responseText);
+                        });
 
-                        if (localStorage.timestamps) {
-                            chapterDbController = JSON.parse(localStorage.timestamps);
-                            chapterDbController.push({
-                                timestamp: new Date().getTime(),
-                                key: item.short+item.Chapter
-                            });
-                            localStorage.timestamps = JSON.stringify(chapterDbController);
-                        } else {
-                            localStorage.timestamps = JSON.stringify([{timestamp: new Date().getTime(), key: item.short+item.Chapter}]);
-                        }
-                        try {
-                            localStorage[item.short+item.Chapter] = http.responseText;
-                        }
-                        catch (e) {
-                        }
-
-                        resolve(http.responseText);
                     } else if (http.readyState === 4) {
                         if (http.status === 401) {
                             front.methods.logout();
@@ -1893,7 +1880,7 @@ front.serverActions.subscribe = (short, unsubscribe) => {
 
 
 front.tools.initDb = (DBName, storageName, version) => {
-    let request = version ? indexedDB.open(DBName, version) : indexedDB.open(DBName),
+    let request = indexedDB.open(DBName),
         db;
 
     return new Promise((resolve, reject) => {
@@ -1908,8 +1895,22 @@ front.tools.initDb = (DBName, storageName, version) => {
 
         request.onerror = reject;
 
+        request.onblocked = reject;
+
         request.onsuccess = function() {
             db = this.result;
+
+            db.onversionchange = () => {
+                console.log(arguments);
+            };
+
+            db.onerror = () => {
+                console.log(arguments);
+            };
+
+            db.onabort = () => {
+                console.log(arguments);
+            };
 
             db.delete = (id) => {
                 return new Promise( (resolve, reject) => {
@@ -1941,15 +1942,7 @@ front.tools.initDb = (DBName, storageName, version) => {
                 });
             };
 
-            if (db.objectStoreNames.contains(storageName)) {
-                resolve(db);
-            } else {
-                db.close();
-                front.tools.initDb(DBName, storageName, db.version + 1)
-                    .then(resolve)
-                    .catch(console.log);
-            }
-
+            resolve(db);
         };
     });
 };
