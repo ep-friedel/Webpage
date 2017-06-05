@@ -1182,7 +1182,6 @@ front.methods.sortChaptersForLoading = (arr) => {
         });
 
     });
-
 };
 
 front.methods.unmarkRead = (item) => {

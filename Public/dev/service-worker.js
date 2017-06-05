@@ -1,5 +1,5 @@
 'use strict';
-let version = '6',
+let version = '7',
     jwt,
     offline = new Response(new Blob(), {status: 279}),
     staticContent = [
@@ -28,10 +28,10 @@ let version = '6',
     onlineFirst = [
         'api/getNewChapterList',
         'api/requestFullChapterList',
-        'api/subscribeSeries'
+        'api/subscribeSeries',
+        'api/requestChapter'
     ],
     offlineFirst = [
-        'api/requestChapter'
     ],
     requestStack = [],
     stackTimer,
@@ -43,9 +43,9 @@ const relativeUrl   = 'index.html',
       serverUrl     = 'https://fochlac.com/dev/',
       apiUrl     = 'https://crawler.fochlac.com/',
       iconUrl       = '/images/bookcase_144.png',
-      offlineRegex  = new RegExp(offlineFirst.map(str => str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|')),
-      onlineRegex   = new RegExp(onlineFirst.map(str => str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|')),
-      staticRegex   = new RegExp(staticContent.map(str => str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|'));
+      offlineRegex  = offlineRegex.length ?  new RegExp(offlineFirst.map(str => str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|')) : undefined,
+      onlineRegex   = onlineRegex.length ? new RegExp(onlineFirst.map(str => str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|')) : undefined,
+      staticRegex   = staticRegex.length ?  new RegExp(staticContent.map(str => str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|')) : undefined;
 
 function handle_push(event) {
     if (pushTimeout) {
@@ -153,7 +153,7 @@ function handle_message(event) {
 
 function handle_fetch(event) {
     if (event.request.method === 'GET') {
-        if (onlineRegex.test(event.request.url)) {
+        if (onlineRegex && onlineRegex.test(event.request.url)) {
             let req = event.request.clone();
             event.respondWith(
                 fetch(event.request)
@@ -178,7 +178,7 @@ function handle_fetch(event) {
                     }).catch(err => console.warn(err));
                 })
             );
-        } else if (offlineRegex.test(event.request.url)) {
+        } else if (offlineRegex && offlineRegex.test(event.request.url)) {
             event.respondWith(
                 caches.open(version)
                 .then(cache => {
@@ -201,7 +201,7 @@ function handle_fetch(event) {
                     }).catch(err => console.warn(err));
                 }).catch(err => console.warn(err))
             );
-        } else if (staticRegex.test(event.request.url)) {
+        } else if (staticRegex && staticRegex.test(event.request.url)) {
             event.respondWith(
                 caches.open(version)
                 .then(cache => {
