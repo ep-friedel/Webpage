@@ -507,10 +507,10 @@ front.methods.checkForToken = () => {
         front.el.body.classList.add('menuMode');
         front.vars.jwt = jwt;
         navigator.serviceWorker.ready.then((registration) => {
-                registration.active.postMessage({type: 'newJWT', jwt: jwt});
-                front.methods.getVersion();
-            }
-        }).catch(err => console.warn('checkForToken error', err));
+            registration.active.postMessage({type: 'newJWT', jwt: jwt});
+            front.methods.getVersion();
+        })
+        .catch(err => console.warn('checkForToken error', err));
         front.initAfterLogin();
         document.getElementById('loginFrame').classList.add('hidden');
         document.getElementById('loginForm').classList.add('hidden');
