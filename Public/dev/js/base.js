@@ -645,8 +645,7 @@ front.methods.getChapter = (arr, addToNew) => {
                                 item.read = false;
                                 front.methods.renderChapter(item);
                             })
-                            .catch((err) => {
-                            })
+                            .catch(console.warn)
                             .then(() => {
                                 index++;
                                 front.vars.loadingState[item.short].state++;
