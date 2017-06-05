@@ -1144,16 +1144,20 @@ front.methods.sortChaptersForLoading = (arr) => {
                 front.dbs[story] = front.tools.initDb(story, 'Chapters')
             }
 
-            return front.dbs[story].getIndex()
-    })).then(result => {
+            return front.dbs[story];
+    }))
+    .then(dbs => Promise.all(dbs.map(db => db.getIndex())))
+    .then(result => {
         return result.reduce((acc, chapters, index) => {
             acc[stories[index]] = chapters;
             return acc;
         }, {});
-    }).catch((err) => {
+    })
+    .catch((err) => {
         console.log(err);
         return {};
-    }).then(storedChapters => {
+    })
+    .then(storedChapters => {
         return sortedarr.reduce((acc, chap) => {
             if (storedChapters[chap.short] && storedChapters[chap.short].includes(chap.Chapter)) {
                 if (firstChapters[chap.short] === undefined) {
