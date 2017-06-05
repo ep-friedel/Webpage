@@ -1132,7 +1132,7 @@ front.methods.sortChaptersForLoading = (arr) => {
     let sortedarr = front.methods.sortChapters(arr),
         firstChapters = {},
         stories = sortedarr.reduce((acc, chap) => {
-            if (!stories.includes(chap.short)) {
+            if (!acc.includes(chap.short)) {
                 acc.push(chap.short);
             }
             return acc;
