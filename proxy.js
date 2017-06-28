@@ -34,7 +34,7 @@ module.exports = {
             if ((data.redirect && data.redirectUrl && data.redirectUrl.length && data.subdomain) || (data.port && data.port.length && data.subdomain)) {
                 _readFile()
                     .then(urlmap => {
-                        urlmap[data.subdomain + '.fochlac.com'] = data.redirect ?
+                        urlmap[data.subdomain + '.fochlac.com'] = (data.redirect == "true") ?
                         {
                             redirect: true,
                             redirectUrl: data.redirectUrl
