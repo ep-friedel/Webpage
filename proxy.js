@@ -42,7 +42,8 @@ module.exports = {
                         :
                         {
                             redirect: false,
-                            redirectUrl: 'https://localhost:' + process.env[data.port] + data.path
+                            url: data.path,
+                            port: data.port
                         };
                         return urlmap;
                     })
