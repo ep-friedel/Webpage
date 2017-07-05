@@ -1,3 +1,4 @@
+/* generic stuff */
 .row {
     display: flex;
     flex-direction: row;
@@ -7,30 +8,66 @@
     display: flex;
     flex-direction: column;
 }
-
-.exerciseImage {
-    width: 100%;
-}
-
-.setup {
-    list-style: none;
-    padding: 0 10px;
-}
-
-.setup li {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-}
-
-.setup li span:nth-child(2) {
-    padding: 0 0 0 5px;
-}
 .fullWidthButton {
     width: 100%;
     font-size: 16px;
     padding: 5px 0;
     margin-top: 10px;
+}
+.hidden {
+    display: none;
+}
+.pointer {
+    cursor: pointer;
+}
+
+
+
+/* exercise */
+.exercise {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    background: #fff;
+}
+.exerciseList {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    min-height: 100%;
+}
+.exerciseList.minimized {
+    min-height: auto;
+}
+.exercise.minified.completed {
+    border-color: green;
+}
+.exercise.minified {
+    height: 20vh;
+    margin: 1.5%;
+    padding: 1.5% 2.5%;
+    display: inline-block;
+    border: solid #ccc 0.3vh;
+    border-radius: 0.2vh;
+}
+.minified .exerciseImage {
+    height: 15vh;
+    width: auto;
+}
+.exerciseImage {
+    width: 100%;
+}
+.setup {
+    list-style: none;
+    padding: 0 10px;
+}
+.setup li {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+.setup li span:nth-child(2) {
+    padding: 0 0 0 5px;
 }
 .newResults {
     table-layout: fixed;
@@ -39,9 +76,55 @@
     height: 44px;
 }
 
-.hidden {
-    display: none;
+/* dialog */
+
+.dialogBackdrop {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0,0,0,0.3);
+    padding: 50;
 }
+
+.dialog {
+    background: white;
+    max-width: 500px;
+    min-height: 150px;
+    margin: 100px auto 0;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 5px;
+}
+
+.dialogHeader {
+    height: 30px;
+    justify-content: space-between;
+    padding-left: 10px;
+}
+
+.dialogFooter {
+    height: 30px;
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    margin: 0 10px 10px;
+}
+
+.dialogBody {
+    flex-grow: 20;
+    padding: 10px;
+}
+
+.dialogButton {
+    min-width: 70px;
+    margin: 0 5px;
+}
+
+/* elements*/
+
 table {
     width: 100%;
     text-align: center;
@@ -69,6 +152,9 @@ input {
     padding: 5px;
     text-align: center;
 }
+button {
+    cursor: pointer;
+}
 body {
     height: 100vh;
     width: 100vw;
@@ -85,15 +171,21 @@ body {
 #root {
     text-align: center;
     padding: 20px;
+    height: calc(100% - 40px);
+    background: #fcfcfc;
+}
+.appRoot{
+    height: 100%;
 }
 @media (min-aspect-ratio: 4/3) {
     #root {
-        margin: 100px auto 0;
-        width: 400px;
-        height: 700px;
+        margin: 30px auto 0;
+        width: 600px;
+        height: 935px;
         border: solid 2px #bbb;
         border-radius: 2px;
         background: #fff;
         font-size: 19px;
+        overflow-y: auto;
     }
 }

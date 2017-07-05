@@ -1,3 +1,6 @@
+/*-----------------------------------------------------------------
+---------------------------- Exercise -----------------------------
+-----------------------------------------------------------------*/
 class exercise extends React.Component {
     constructor(props) {
         super();
@@ -5,7 +8,7 @@ class exercise extends React.Component {
             pastResults = props.pastResults;
 
         this.state =  {
-            repetitions: 3,
+            display: 'minified',
             completed: false,
             newResults: [],
             currentRep: {
@@ -13,10 +16,14 @@ class exercise extends React.Component {
                 reps: pastResults[pastResults.length - 1][0].reps,
                 weight: pastResults[pastResults.length - 1][0].weight
             }
-        }
+        };
 
-        for (i = 0; i < this.state.repetitions; i++) {
-            this.state.newResults.push({reps: undefined, weight: undefined});
+        if (props.newResults) {
+            this.state.newResults = props.newResults;
+        } else {
+            for (i = 0; i < props.details.repetitions; i++) {
+                this.state.newResults.push({reps: undefined, weight: undefined});
+            }
         }
     }
 
@@ -36,6 +43,31 @@ class exercise extends React.Component {
         });
     }
 
+    closeAndSave() {
+        if (this.state.completed) {
+            this.props.saveNewResults(this.state.newResults, this.state.completed, () => this.closeExercise());
+        } else {
+            this.props.openModal({
+                text: 'Sind sie sicher, dass sie die Trainingseinheit abschlienen wollen, ohne sie zu beenden?',
+                title: 'Bestätigung',
+                buttons: [
+                    {
+                        name: 'Ja',
+                        click: () => {
+                            this.setState({completed: true});
+                            this.props.closeModal();
+                            this.props.saveNewResults(this.state.newResults, this.state.completed, () => this.closeExercise());
+                        }
+                    },
+                    {
+                        name: 'Nein',
+                        click: () => closeModal()
+                    },
+                ]
+            });
+        }
+    }
+
     enterResultsHandler() {
         let s = this.state,
             cRep = s.currentRep,
@@ -44,10 +76,10 @@ class exercise extends React.Component {
 
         changedResult[rep - 1] = Object.assign({}, s.newResults[rep - 1], {reps: cRep.reps, weight: cRep.weight})
 
-        if (s.repetitions > rep) {
+        if (this.props.details.repetitions > rep) {
             this.setState({
                 newResults: changedResult,
-                currentRep: Object.assign({}, cRep, {repetition: rep + 1, reps: this.props.pastResults[this.props.pastResults.length - 1][rep].reps, weight: this.props.pastResults[this.props.pastResults.length - 1][rep].weight})
+                currentRep: Object.assign({}, cRep, {repetition: rep + 1})
             });
         } else {
             this.setState({
@@ -57,16 +89,38 @@ class exercise extends React.Component {
         }
     }
 
+    openExercise() {
+        this.setState({
+            display: 'full'
+        });
+
+        this.props.hideAll();
+    }
+
+    closeExercise() {
+        this.setState({
+            display: 'minified'
+        });
+
+        this.props.showAll();
+    }
+
     render() {
-        return React.createElement(
-            'div',
-            {className: "exercise" + (this.state.completed ? ' completed' : '')},
-            React.createElement(
+        if (this.props.hide && this.state.display !== 'full') {
+            return null;
+        }
+
+        switch(this.state.display) {
+        case 'minified':
+            return React.createElement(
                 'div',
-                {className: "row"},
+                {
+                    className: "exercise minified pointer" + (this.state.completed ? ' completed' : ''),
+                    onClick: () => this.openExercise()
+                },
                 React.createElement(
                     'div',
-                    null,
+                    {className: 'imageContainer'},
                     React.createElement(
                         'img',
                         {
@@ -76,83 +130,123 @@ class exercise extends React.Component {
                     )
                 ),
                 React.createElement(
-                    details,
-                    {details: this.props.details}
-                )
-            ),
-            React.createElement(
-                'div',
-                null,
-                React.createElement(
                     'h3',
                     null,
-                    'Vergangene Trainingseinheiten',
-                ),
-                React.createElement(
-                    'table',
-                    {className: 'pastResults'},
-                    React.createElement(
-                        'tbody',
-                        null,
-                        React.createElement(
-                            resultsRow,
-                            {data: this.props.pastResults[this.props.pastResults.length - 1]}
-                        ),
-                        React.createElement(
-                            resultsRow,
-                            {data: this.props.pastResults[this.props.pastResults.length - 2]}
-                        ),
-                        React.createElement(
-                            resultsRow,
-                            {data: this.props.pastResults[this.props.pastResults.length - 3]}
-                        )
-                    )
+                    (this.props.details.machine ? (this.props.details.machine + ' - ') : '') + this.props.details.name
                 )
-            ),
-            React.createElement(
+            );
+
+        case 'full':
+            return React.createElement(
                 'div',
-                null,
+                {className: "exercise" + (this.state.completed ? ' completed' : '')},
                 React.createElement(
-                    'h3',
-                    null,
-                    'Heutige Trainingseinheit',
-                ),
-                React.createElement(
-                    'table',
-                    {className: 'newResults'},
+                    'div',
+                    {className: "row"},
                     React.createElement(
-                        'tbody',
+                        'div',
                         null,
                         React.createElement(
-                            resultsRow,
+                            'img',
                             {
-                                data: this.state.newResults
+                                className: 'exerciseImage',
+                                src: this.props.details.imageUrl
                             }
                         )
+                    ),
+                    React.createElement(
+                        details,
+                        {details: this.props.details}
                     )
                 ),
                 React.createElement(
-                    enterResults,
-                    {
-                        currentReps: this.state.currentRep.reps,
-                        currentWeight: this.state.currentRep.weight,
-                        changedReps: (newNumber) => this.changedReps(newNumber),
-                        changedWeight: (newNumber) => this.changedWeight(newNumber),
-                        repetition: this.state.currentRep.repetition,
-                        enterResults: () => this.enterResultsHandler(),
-                        completed: this.state.completed
-                    }
+                    'div',
+                    null,
+                    React.createElement(
+                        'h3',
+                        null,
+                        'Vergangene Trainingseinheiten',
+                    ),
+                    React.createElement(
+                        'table',
+                        {className: 'pastResults'},
+                        React.createElement(
+                            'tbody',
+                            null,
+                            React.createElement(
+                                resultsRow,
+                                {data: this.props.pastResults[this.props.pastResults.length - 3]}
+                            ),
+                            React.createElement(
+                                resultsRow,
+                                {data: this.props.pastResults[this.props.pastResults.length - 2]}
+                            ),
+                            React.createElement(
+                                resultsRow,
+                                {data: this.props.pastResults[this.props.pastResults.length - 1]}
+                            )
+                        )
+                    )
                 ),
                 React.createElement(
-                    'button',
-                    {className: (this.state.completed ? 'fullWidthButton' : 'hidden')},
-                    'Nächste Übung wählen'
+                    'div',
+                    null,
+                    React.createElement(
+                        'h3',
+                        null,
+                        'Heutige Trainingseinheit',
+                    ),
+                    React.createElement(
+                        'table',
+                        {className: 'newResults'},
+                        React.createElement(
+                            'tbody',
+                            null,
+                            React.createElement(
+                                resultsRow,
+                                {
+                                    data: this.state.newResults
+                                }
+                            )
+                        )
+                    ),
+                    React.createElement(
+                        enterResults,
+                        {
+                            currentReps: this.state.currentRep.reps,
+                            currentWeight: this.state.currentRep.weight,
+                            changedReps: (newNumber) => this.changedReps(newNumber),
+                            changedWeight: (newNumber) => this.changedWeight(newNumber),
+                            repetition: this.state.currentRep.repetition,
+                            enterResults: () => this.enterResultsHandler(),
+                            completed: this.state.completed
+                        }
+                    )
+                ),
+                React.createElement(
+                    'div',
+                    null,
+                    React.createElement(
+                        'button',
+                        {
+                            className: 'fullWidthButton',
+                            onClick: () => this.closeAndSave()
+                        },
+                        'Speichern und Abschließen'
+                    ),
+                    (!this.state.completed ? React.createElement(
+                        'button',
+                        {
+                            className: 'fullWidthButton closeButton',
+                            onClick: () => this.closeExercise()
+                        },
+                        'Schließen'
+                    ) : null)
                 )
-            )
-        );
+            );
+        }
     }
 }
-
 
 class details extends React.Component {
     constructor(props) {
@@ -256,9 +350,13 @@ class enterResults extends React.Component {
     render() {
         let rep;
 
+        if (this.props.completed) {
+            return null;
+        }
+
         return React.createElement(
             'div',
-            {className: 'enterResults' + (this.props.completed ? ' hidden' : '')},
+            {className: 'enterResults'},
             React.createElement(
                 'h3',
                 null,
@@ -341,29 +439,268 @@ class weightInput extends React.Component {
     }
 }
 
+class exerciseList extends React.Component {
+    constructor(props) {
+        super();
+
+        this.state = {
+            hideAll: false
+        }
+    }
+
+    showAll() {
+        this.setState({
+            hideAll: false
+        });
+    }
+
+
+    hideAll() {
+        this.setState({
+            hideAll: true
+        });
+    }
+
+    render() {
+        let ex,
+            exerciseList = [];
+
+        if (!this.props.show) {
+            return null;
+        }
+
+        for (ex in this.props.exercises) {
+            exerciseList.push(React.createElement(
+                exercise,
+                {
+                    details: this.props.exercises[ex].details,
+                    pastResults: this.props.exercises[ex].pastResults,
+                    key: ex,
+                    hide: this.state.hideAll,
+                    hideAll: () => this.hideAll(),
+                    showAll: () => this.showAll(),
+                    openModal: this.props.openModal,
+                    closeModal: this.props.closeModal,
+                    saveNewResults: this.props.saveNewResults,
+
+                }
+            ));
+        }
+
+
+        return React.createElement(
+            'div',
+            {className: 'exerciseList' + (this.state.hideAll ? '' : ' minimized')},
+            exerciseList
+        );
+    }
+}
+
+/*-----------------------------------------------------------------
+-------------------------- Exercise End ---------------------------
+-----------------------------------------------------------------*/
+
+class dialog extends React.Component {
+    constructor(props) {
+        super();
+    }
+
+    render() {
+        if (!this.props.opts.showDialog) {
+            return null;
+        }
+
+        let buttonList = this.props.opts.buttons.map((button, index) => {
+            return React.createElement('button', {
+                    onClick: (evt) => button.click(evt),
+                    key: index,
+                    className: 'dialogButton'
+                },
+                button.name);
+        });
+
+        return React.createElement(
+            'div',
+            {className: 'dialogBackdrop'},
+            React.createElement(
+                'div',
+                {className: 'dialog'},
+                React.createElement(
+                    'div',
+                    {className: 'dialogHeader row'},
+                    React.createElement(
+                        'h3',
+                        {className: 'dialogHeadline'},
+                        this.props.opts.title ? this.props.opts.title : ''
+                    ),
+                    React.createElement(
+                        'span',
+                        {
+                            className: 'fa fa-window-close-o dialogCloseButton pointer',
+                            onClick: this.props.close
+                        }
+                    )
+                ),
+                React.createElement(
+                    'div',
+                    {className: 'dialogBody'},
+                    this.props.opts.text
+                ),
+                React.createElement(
+                    'div',
+                    {className: 'dialogFooter'},
+                    buttonList
+                )
+            )
+        );
+    }
+}
+
+class app extends React.Component {
+    constructor(props) {
+        super();
+
+        this.state = {
+            currentPage: 'menu',
+            dialogOptions: {
+                showDialog: false
+            }
+        }
+    }
+
+    openModal(opt) {
+        this.setState({
+            dialogOptions: {
+                showDialog: true,
+                text: opt.text ? opt.text : '',
+                title: opt.title ? opt.title : '',
+                buttons: opt.buttons ? opt.buttons : [{
+                    name: "Schließen",
+                    click: () => this.closeModal()
+                }]
+            }
+        });
+    }
+
+    closeModal() {
+        this.setState({
+            dialogOptions: {
+                showDialog: false
+            }
+        });
+    }
+
+    render() {
+        return React.createElement(
+            'div',
+            {className: 'appRoot'},
+
+            React.createElement(
+                dialog,
+                {
+                    opts: this.state.dialogOptions,
+                    close: () => this.closeModal()
+                }
+            ),
+
+            React.createElement(
+                exerciseList,
+                {
+                    openModal: (opt) => this.openModal(opt),
+                    closeModal: (opt) => this.closeModal(opt),
+                    saveNewResults: (a, b, c) => {
+                        console.log('saved: ', a, b);
+                        c();
+                    },
+                    show: true,
+                    exercises:[{
+                            details: {
+                                imageUrl: "./images/situp.jpg",
+                                machine: 'V18',
+                                name: 'Butterfly',
+                                note: 'Arme nach innen drücken',
+                                setup: {
+                                    'Sitz' : 3,
+                                    'Lehne' : 5
+                                },
+                                repetitions: 3
+                            },
+                            pastResults: [
+                                [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}],
+                                [{reps: 16, weight: 15},{reps: 16, weight: 15},{reps: 16, weight: 15}],
+                                [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}],
+                                [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}]
+                            ],
+                        }, {
+                            details: {
+                                imageUrl: "./images/situp.jpg",
+                                machine: 'V18',
+                                name: 'Butterfly',
+                                note: 'Arme nach innen drücken',
+                                setup: {
+                                    'Sitz' : 3,
+                                    'Lehne' : 5
+                                },
+                                repetitions: 3
+                            },
+                            pastResults: [
+                                [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}],
+                                [{reps: 16, weight: 15},{reps: 16, weight: 15},{reps: 16, weight: 15}],
+                                [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}],
+                                [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}]
+                            ]
+                        }, {
+                            details: {
+                                imageUrl: "./images/situp.jpg",
+                                machine: 'V18',
+                                name: 'Butterfly',
+                                note: 'Arme nach innen drücken',
+                                setup: {
+                                    'Sitz' : 3,
+                                    'Lehne' : 5
+                                },
+                                repetitions: 3
+                            },
+                            pastResults: [
+                                [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}],
+                                [{reps: 16, weight: 15},{reps: 16, weight: 15},{reps: 16, weight: 15}],
+                                [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}],
+                                [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}]
+                            ]
+                        }, {
+                            details: {
+                                imageUrl: "./images/situp.jpg",
+                                machine: 'V18',
+                                name: 'Butterfly',
+                                note: 'Arme nach innen drücken',
+                                setup: {
+                                    'Sitz' : 3,
+                                    'Lehne' : 5
+                                },
+                                repetitions: 3
+                            },
+                            pastResults: [
+                                [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}],
+                                [{reps: 16, weight: 15},{reps: 16, weight: 15},{reps: 16, weight: 15}],
+                                [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}],
+                                [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}]
+                            ]
+                        }
+                    ]
+                }
+            )
+        );
+    }
+}
+
+
+
 
 document.addEventListener("DOMContentLoaded", function(event) {
     ReactDOM.render(
         React.createElement(
-            exercise,
-            {
-                details: {
-                    imageUrl: "./images/situp.jpg",
-                    machine: 'V18',
-                    name: 'Butterfly',
-                    note: 'Arme nach innen drücken',
-                    setup: {
-                        'Sitz' : 3,
-                        'Lehne' : 5
-                    }
-                },
-                pastResults: [
-                    [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}],
-                    [{reps: 16, weight: 15},{reps: 16, weight: 15},{reps: 16, weight: 15}],
-                    [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}],
-                    [{reps: 18, weight: 12},{reps: 20, weight: 12},{reps: 16, weight: 12}]
-                ]
-            }
+            app,
+            null
         ),
         document.getElementById('root')
     );
