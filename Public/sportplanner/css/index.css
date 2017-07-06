@@ -1,191 +1,280 @@
 /* generic stuff */
-.row {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
-}
-.column {
-    display: flex;
-    flex-direction: column;
-}
-.fullWidthButton {
-    width: 100%;
-    font-size: 16px;
-    padding: 5px 0;
-    margin-top: 10px;
-}
-.hidden {
-    display: none;
-}
-.pointer {
-    cursor: pointer;
-}
+    .row {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+    }
+    .column {
+        display: flex;
+        flex-direction: column;
+    }
+    .fullWidthButton {
+        width: 100%;
+        font-size: 16px;
+        padding: 5px 0;
+        margin-top: 10px;
+    }
+    .hidden {
+        display: none;
+    }
+    .pointer {
+        cursor: pointer;
+    }
+    .margin-right {
+        margin-right: 1.5vh;
+    }
+    .margin-top {
+        margin-top: 1.5vh;
+    }
+    .margin-left {
+        margin-left: 1.5vh;
+    }
+    .margin-bottom {
+        margin-bottom: 1.5vh;
+    }
+/* generic stuff end */
 
+/* topbar */
+    .topbar {
+        height: 5vh;
+        justify-content: space-between;
+        background: #ddd;
+        padding: 0.5vh 0.5vh;
+        border-bottom: solid 0.2vh #aaa;
+        position: fixed;
+        left:0;
+        right:0;
+        top:0;
+    }
 
+    .topbarButton {
+        background: #aaa;
+        border: none;
+        border-radius: 0.4vh;
+        font-size: 2.5vh;
+        padding: 0.5vh 2.5vh;
+    }
+
+    .menu {
+        width: 4.1vh;
+        height: 4.1vh;
+        overflow: hidden;
+        background: #ababab;
+        border-radius: 0.4vh;
+        z-index: 1;
+        padding: 0.5vh;
+    }
+
+    .menuButton.menuButton {
+        height: 3vh;
+        padding: 1vh 0.55vh 0.1vh;
+        background: #aaa;
+        border-radius: 0.4vh;
+        float: right;
+        font-size: 3.5vh;
+    }
+
+    .menu.open {
+        width: auto;
+        height: auto;
+        position: absolute;
+        right: 0.5vh;
+    }
+
+    .menuList {
+        margin-top: 0.3vh;
+        list-style: none;
+        padding: 0;
+    }
+    .menuName {
+        font-size: 3vh;
+        display: inline-block;
+        margin-top: 0.4vh;
+        width: calc(100% - 4.2vh);
+        overflow: hidden;
+    }
+
+    .menuList li:hover {
+        background: #ccc;
+    }
+
+    .menuList li {
+        display: flex;
+        justify-content: flex-start;
+        padding: 1vh 4.5vh 1vh 1.5vh;
+        background: #bbb;
+        margin-top: 0.5vh;
+    }
+/* topbar end */
 
 /* exercise */
-.exercise {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-    background: #fff;
-}
-.exerciseList {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-around;
-    min-height: 100%;
-}
-.exerciseList.minimized {
-    min-height: auto;
-}
-.exercise.minified.completed {
-    border-color: green;
-}
-.exercise.minified {
-    height: 20vh;
-    margin: 1.5%;
-    padding: 1.5% 2.5%;
-    display: inline-block;
-    border: solid #ccc 0.3vh;
-    border-radius: 0.2vh;
-}
-.minified .exerciseImage {
-    height: 15vh;
-    width: auto;
-}
-.exerciseImage {
-    width: 100%;
-}
-.setup {
-    list-style: none;
-    padding: 0 10px;
-}
-.setup li {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-}
-.setup li span:nth-child(2) {
-    padding: 0 0 0 5px;
-}
-.newResults {
-    table-layout: fixed;
-}
-.newResults td {
-    height: 44px;
-}
+    .exercise {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        background: #fff;
+    }
+    .exerciseList {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+        min-height: 100%;
+        background: #fff;
+        padding: 2.5vh;
+    }
+    .exerciseList.minimized {
+        min-height: auto;
+    }
+    .exercise.minified.completed {
+        border-color: green;
+    }
+    .exercise.minified {
+        height: 20vh;
+        margin: 1.5%;
+        padding: 1.5% 2.5%;
+        display: inline-block;
+        border: solid #ccc 0.3vh;
+        border-radius: 0.2vh;
+    }
+    .minified .exerciseImage {
+        height: 15vh;
+        width: auto;
+    }
+    .exerciseImage {
+        width: 100%;
+    }
+    .setup {
+        list-style: none;
+        padding: 0 10px;
+    }
+    .setup li {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+    .setup li span:nth-child(2) {
+        padding: 0 0 0 5px;
+    }
+    .newResults {
+        table-layout: fixed;
+    }
+    .newResults td {
+        height: 44px;
+    }
+/* exercise end */
 
 /* dialog */
+    .dialogBackdrop {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(0,0,0,0.3);
+        padding: 50;
+    }
 
-.dialogBackdrop {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: rgba(0,0,0,0.3);
-    padding: 50;
-}
+    .dialog {
+        background: white;
+        max-width: 500px;
+        min-height: 150px;
+        margin: 100px auto 0;
+        padding: 5px;
+        display: flex;
+        flex-direction: column;
+        border-radius: 5px;
+    }
 
-.dialog {
-    background: white;
-    max-width: 500px;
-    min-height: 150px;
-    margin: 100px auto 0;
-    padding: 5px;
-    display: flex;
-    flex-direction: column;
-    border-radius: 5px;
-}
+    .dialogHeader {
+        height: 30px;
+        justify-content: space-between;
+        padding-left: 10px;
+    }
 
-.dialogHeader {
-    height: 30px;
-    justify-content: space-between;
-    padding-left: 10px;
-}
+    .dialogFooter {
+        height: 30px;
+        display: flex;
+        align-items: stretch;
+        justify-content: flex-end;
+        margin: 0 10px 10px;
+    }
 
-.dialogFooter {
-    height: 30px;
-    display: flex;
-    align-items: stretch;
-    justify-content: flex-end;
-    margin: 0 10px 10px;
-}
+    .dialogBody {
+        flex-grow: 20;
+        padding: 10px;
+    }
 
-.dialogBody {
-    flex-grow: 20;
-    padding: 10px;
-}
-
-.dialogButton {
-    min-width: 70px;
-    margin: 0 5px;
-}
+    .dialogButton {
+        min-width: 70px;
+        margin: 0 5px;
+    }
+/* dialog end */
 
 /* elements*/
 
-table {
-    width: 100%;
-    text-align: center;
-    border-collapse: collapse;
-}
-td {
-    border: solid 1px #aaa;
-}
-td > p:nth-child(2) {
-    border-top: dashed 1px #ddd;
-}
-p {
-    margin: 2px 0;
-}
-h3 {
-    margin: 10px 0 5px;
-}
-h4 {
-    margin: 0px 0 5px;
-}
-ul {
-    margin: 0px;
-}
-input {
-    padding: 5px;
-    text-align: center;
-}
-button {
-    cursor: pointer;
-}
-body {
-    height: 100vh;
-    width: 100vw;
-    background: #fafafa;
-    margin: 0;
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    font-size: 2.4vh;
-    font-family: Raleway;
-}
-#root {
-    text-align: center;
-    padding: 20px;
-    height: calc(100% - 40px);
-    background: #fcfcfc;
-}
-.appRoot{
-    height: 100%;
-}
-@media (min-aspect-ratio: 4/3) {
+    table {
+        width: 100%;
+        text-align: center;
+        border-collapse: collapse;
+    }
+    td {
+        border: solid 1px #aaa;
+    }
+    td > p:nth-child(2) {
+        border-top: dashed 1px #ddd;
+    }
+    p {
+        margin: 2px 0;
+    }
+    h3 {
+        margin: 10px 0 5px;
+    }
+    h4 {
+        margin: 0px 0 5px;
+    }
+    ul {
+        margin: 0px;
+    }
+    input {
+        padding: 5px;
+        text-align: center;
+    }
+    button {
+        cursor: pointer;DE_EPAGES/Amazon/Templates/UnityMBO/UnityMBO-AmazonConfigDefaults.TabPage.html
+    }
+    body {
+        height: 100vh;
+        width: 100vw;
+        background: #fafafa;
+        margin: 0;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        font-size: 2.4vh;
+        font-family: Raleway;
+        overflow: hidden;
+    }
     #root {
-        margin: 30px auto 0;
-        width: 600px;
-        height: 935px;
-        border: solid 2px #bbb;
-        border-radius: 2px;
-        background: #fff;
-        font-size: 19px;
+        text-align: center;
+        height: calc(100% - 40px);
+        background: #fcfcfc;
+        position: relative;
+        overflow: hidden;
+    }
+    .appRoot{
+        height: 100%;
+        margin-top: 5vh;
         overflow-y: auto;
+    }
+/* elements end */
+
+
+@media (min-aspect-ratio: 4/3) {
+
+    .menu {
+        width: auto;
+        padding: 0.5vh 2.5vh;
     }
 }

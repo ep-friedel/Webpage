@@ -556,6 +556,138 @@ class dialog extends React.Component {
     }
 }
 
+class menu extends React.Component {
+    constructor(props) {
+        super();
+        this.state ={
+            open: false
+        };
+
+
+    }
+
+    _handleDocumentClick(evt) {
+        if (!event.path.filter(elem => (elem.classList && elem.classList.contains('menu'))).length) {
+            this.setState({open: !this.state.open});
+            document.querySelector('html').removeEventListener('click', this._handleDocumentClickBind);
+        }
+    }
+
+    renderMenuEntry(opt) {
+        return React.createElement(
+            'li',
+            {
+                onClick: () => opt.action(),
+                className: 'pointer'
+            },
+            React.createElement(
+                'span',
+                {className: 'fa margin-right ' + opt.iconClass}
+            ),
+            React.createElement(
+                'span',
+                null,
+                opt.text
+            )
+        )
+    }
+
+
+    render() {
+        if (!this.props.showMenu) {
+            return null;
+        }
+
+
+        return React.createElement(
+            'div',
+            {className: 'menu ' + (this.state.open ? 'open' : '') },
+            (true ? React.createElement(
+                'span',
+                {
+                    className: 'menuName',
+                },
+                null,
+                'Menu'
+            ) : null),
+            React.createElement(
+                'span',
+                {
+                    className: 'fa fa-bars fa-lg menuButton pointer',
+                    onClick: () => {
+                        this.setState({open: !this.state.open});
+                        if (!this.state.open) {
+                            this._handleDocumentClickBind = this._handleDocumentClick.bind(this)
+                            document.querySelector('html').addEventListener('click', this._handleDocumentClickBind);
+                        } else {
+                            document.querySelector('html').removeEventListener('click', this._handleDocumentClickBind);
+                        }
+                    }
+                }
+            ),
+            React.createElement(
+                'ul',
+                {className: 'menuList'},
+                this.renderMenuEntry({
+                    iconClass: 'fa-cog fa-lg',
+                    action: () => {},
+                    text: 'Einstellungen'
+                }),
+                this.renderMenuEntry({
+                    iconClass: 'fa-user fa-lg',
+                    action: () => {},
+                    text: 'Profil'
+                }),
+                this.renderMenuEntry({
+                    iconClass: 'fa-list fa-lg',
+                    action: () => {},
+                    text: 'Trainingspläne'
+                }),
+                this.renderMenuEntry({
+                    iconClass: 'fa-sign-out fa-lg',
+                    action: () => {},
+                    text: 'Abmelden'
+                })
+            )
+        );
+    }
+}
+
+class topbar extends React.Component {
+    constructor(props) {
+        super();
+    }
+
+    render() {
+        if (this.props.opts.hideTopbar) {
+            return null;
+        }
+
+        return React.createElement(
+            'div',
+            {className: 'topbar row'},
+            React.createElement(
+                'button',
+                {className: 'topbarButton pointer'},
+                'Zurück'
+            )/*,
+            React.createElement(
+                profile,
+                {className: ''}
+            )*/,
+            React.createElement(
+                menu,
+                {
+                    className: '',
+                    showMenu: true
+                }
+            )
+        );
+    }
+}
+
+
+
 class app extends React.Component {
     constructor(props) {
         super();
@@ -594,6 +726,15 @@ class app extends React.Component {
         return React.createElement(
             'div',
             {className: 'appRoot'},
+
+            React.createElement(
+                topbar,
+                {
+                    opts: {
+                        hideTopbar: false
+                    }
+                }
+            ),
 
             React.createElement(
                 dialog,
